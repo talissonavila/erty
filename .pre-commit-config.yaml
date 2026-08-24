@@ -1,0 +1,26 @@
+repos:
+  - repo: local
+    hooks:
+      - id: format-check
+        name: Format check
+        entry: poetry -C backend run task format-check
+        language: system
+        pass_filenames: false
+
+      - id: lint
+        name: Lint
+        entry: poetry -C backend run task lint
+        language: system
+        pass_filenames: false
+
+      - id: typecheck
+        name: Typecheck
+        entry: poetry -C backend run task typecheck
+        language: system
+        pass_filenames: false
+
+      - id: test
+        name: Tests
+        entry: poetry -C backend run task test
+        language: system
+        pass_filenames: false

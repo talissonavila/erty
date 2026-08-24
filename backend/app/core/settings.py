@@ -1,6 +1,6 @@
 import tomllib
-
 from pathlib import Path
+
 
 class Settings:
     def __init__(self) -> None:
@@ -13,7 +13,7 @@ class Settings:
         with pyproject.open("rb") as f:
             data = tomllib.load(f)
 
-        return data["project"]["version"]
+        return str(data["project"]["version"])
 
 
 settings = Settings()

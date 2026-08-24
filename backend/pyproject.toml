@@ -39,6 +39,7 @@ strict = false
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
+explicit_package_bases = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -57,10 +58,18 @@ test = "python -m pytest -s -x -vvv"
 test_api = "python -m pytest tests/api -s -x -vvv"
 test_unit = "python -m pytest tests/unit -s -x -vvv"
 test_integration = "python -m pytest tests/integration -s -x -vvv"
-lint = "ruff check ."
+
+lint = "ruff check . --fix"
+lint-check = "ruff check ."
+
 format = "ruff format ."
+format-check = "ruff format --check ."
+
 typecheck = "mypy app"
-check = "task lint && task typecheck && task test"
+
+check = "task format && task lint && task typecheck && task test"
+
+precommit = "pre-commit run --all-files"
 
 [dependency-groups]
 dev = [
@@ -69,5 +78,6 @@ dev = [
     "pytest (>=9.1.1,<10.0.0)",
     "pytest-cov (>=7.1.0,<8.0.0)",
     "taskipy (>=1.14.1,<2.0.0)",
-    "httpx2 (>=2.12.0,<3.0.0)"
+    "httpx2 (>=2.12.0,<3.0.0)",
+    "pre-commit (>=4.6.2,<5.0.0)"
 ]
