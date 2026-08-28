@@ -55,6 +55,7 @@ addopts = """
 
 [tool.taskipy.tasks]
 test = "python -m pytest -s -x -vvv"
+test-coverage = "python -m pytest --cov=app --cov-report=term-missing --cov-fail-under=85"
 test_api = "python -m pytest tests/api -s -x -vvv"
 test_unit = "python -m pytest tests/unit -s -x -vvv"
 test_integration = "python -m pytest tests/integration -s -x -vvv"
