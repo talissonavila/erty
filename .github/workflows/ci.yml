@@ -46,4 +46,6 @@ jobs:
         run: poetry run task typecheck
 
       - name: Run tests
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
         run: poetry run task test-coverage
