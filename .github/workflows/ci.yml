@@ -67,6 +67,10 @@ jobs:
       - name: Type check
         run: poetry run task typecheck
 
+      - name: Run database migrations
+        working-directory: backend
+        run: poetry run alembic upgrade head  
+
       - name: Run tests
         env:
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
