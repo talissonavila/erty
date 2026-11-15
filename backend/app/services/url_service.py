@@ -1,5 +1,6 @@
 import secrets
 import string
+from datetime import UTC, datetime
 
 from app.models.url import URL
 from app.repositories.url_repository import URLRepository, URLShortCodeConflictError
@@ -60,3 +61,23 @@ class URLService:
             except URLShortCodeConflictError:
                 continue
         raise URLCodeGenerationError("Unable to generate a unique short code.")
+
+    def get_original_url(self, short_code: str) -> str | None:
+        """Retrieve the original URL if the shortened URL is valid.
+
+        Args:
+            short_code (str): Short code used to identify the URL.
+
+        Returns:
+            str | None: Original URL if it exists, is active and has not expired.
+            None, otherwise.
+        """
+        url = self.repository.get_by_short_code(short_code)
+
+        if url is None or not url.is_active:
+            return None
+
+        if url.expires_at is not None and url.expires_at <= datetime.now(UTC):
+            return None
+
+        return url.original_url

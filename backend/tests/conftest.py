@@ -58,3 +58,26 @@ def url_factory() -> Callable[[], URL]:
         )
 
     return build_url
+
+
+@pytest.fixture
+def client_with_db(
+    client: TestClient, db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> TestClient:
+    """Provide a test client connected to the test database.
+
+    Args:
+        client (TestClient): The test client.
+        db_session (Session): Fixture instance for database.
+        monkeypatch (pytest.MonkeyPatch): Used to replace short code generation method.
+
+    Returns:
+        client (TestClient): The test client configured with the database override.
+    """
+
+    def override_get_db() -> Generator[Session, None, None]:
+        """Yield the test database session."""
+        yield db_session
+
+    monkeypatch.setitem(app.dependency_overrides, get_db, override_get_db)
+    return client
