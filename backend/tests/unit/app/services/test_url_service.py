@@ -1,3 +1,4 @@
+from datetime import UTC, datetime, timedelta
 from typing import cast
 from unittest.mock import create_autospec
 
@@ -176,3 +177,110 @@ def test_create_url_retries_after_concurrent_collision(
     assert result is expected_url
     assert repository.get_by_short_code.call_count == 2
     assert repository.create.call_count == 2
+
+
+def test_get_original_url_returns_url_when_active_and_not_expired(
+    repository: URLRepository,
+) -> None:
+    """Returns the original URL when it is active and has no expiration date.
+
+    Args:
+        repository (URLRepository): The mocked URLRepository instance.
+    """
+    url = URL(
+        original_url="https://www.python.org/",
+        short_code="abc12345",
+        is_active=True,
+    )
+    repository.get_by_short_code.return_value = url
+
+    service = URLService(repository)
+
+    result = service.get_original_url("abc12345")
+
+    assert result == "https://www.python.org/"
+    repository.get_by_short_code.assert_called_once_with("abc12345")
+
+
+def test_get_original_url_returns_none_when_url_does_not_exist(
+    repository: URLRepository,
+) -> None:
+    """Returns None when no URL matches the provided short code.
+
+    Args:
+        repository (URLRepository): The mocked URLRepository instance.
+    """
+    repository.get_by_short_code.return_value = None
+
+    service = URLService(repository)
+
+    result = service.get_original_url("missing123")
+
+    assert result is None
+
+
+def test_get_original_url_returns_none_when_url_is_inactive(
+    repository: URLRepository,
+) -> None:
+    """Returns None when the URL exists but is inactive.
+
+    Args:
+        repository (URLRepository): The mocked URLRepository instance.
+    """
+    url = URL(
+        original_url="https://www.python.org/",
+        short_code="abc12345",
+        is_active=False,
+    )
+    repository.get_by_short_code.return_value = url
+
+    service = URLService(repository)
+
+    result = service.get_original_url("abc12345")
+
+    assert result is None
+
+
+def test_get_original_url_returns_none_when_url_is_expired(
+    repository: URLRepository,
+) -> None:
+    """Returns None when the URL has already expired.
+
+    Args:
+        repository (URLRepository): The mocked URLRepository instance.
+    """
+    url = URL(
+        original_url="https://www.python.org/",
+        short_code="abc12345",
+        is_active=True,
+        expires_at=datetime.now(UTC) - timedelta(days=1),
+    )
+    repository.get_by_short_code.return_value = url
+
+    service = URLService(repository)
+
+    result = service.get_original_url("abc12345")
+
+    assert result is None
+
+
+def test_get_original_url_returns_url_when_expiration_is_in_future(
+    repository: URLRepository,
+) -> None:
+    """Returns the original URL when its expiration date is in the future.
+    Args:
+        repository (URLRepository): The mocked URLRepository instance.
+    """
+    url = URL(
+        original_url="https://www.python.org/",
+        short_code="abc12345",
+        is_active=True,
+        expires_at=datetime.now(UTC) + timedelta(days=1),
+    )
+    repository.get_by_short_code.return_value = url
+
+    service = URLService(repository)
+
+    result = service.get_original_url("abc12345")
+
+    assert result == "https://www.python.org/"
