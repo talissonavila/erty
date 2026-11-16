@@ -13,7 +13,7 @@ def test_create_url_persists_url_in_database(
     """Ensure URLService creates and persists a URL in PostgreSQL.
 
     Args:
-    db_session (Session):
+    db_session (Session): Fixture instance for database.
     """
     repository = URLRepository(db_session)
     service = URLService(repository)
@@ -37,8 +37,8 @@ def test_get_original_url_retrieves_persisted_url(
     """Ensure URLService retrieves a URL persisted in PostgreSQL.
 
     Args:
-    db_session (Session):
-    url_factory (Callable[[], URL]):
+    db_session (Session): Fixture instance for database.
+    url_factory (Callable[[], URL]): Factory that creates a URL instance for testing.
     """
     repository = URLRepository(db_session)
     service = URLService(repository)
