@@ -73,3 +73,28 @@ def test_create_url_returns_500_when_code_generation_fails(
 
     assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
     assert response.json() == {"detail": "Unable to generate a unique short code."}
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {},
+        {"original_url": ""},
+        {"original_url": "ftp://example.com"},
+        {"original_url": 123},
+        {"unexpected_field": "value"},
+    ],
+)
+def test_create_url_returns_422_for_invalid_payloads(
+    client_with_db: TestClient,
+    payload: dict[str, object],
+) -> None:
+    """Returns 422 when the payload violates the request schema.
+
+    Args:
+        client_with_db (TestClient): The test client configured with the test database.
+        payload (dict[str, object]): Payload expected by '/urls' route to short a URL.
+    """
+    response = client_with_db.post("/urls", json=payload)
+
+    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY

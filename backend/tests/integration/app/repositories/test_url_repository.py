@@ -27,6 +27,9 @@ def test_create_url(
     assert created_url.id is not None
     assert created_url.short_code == url.short_code
     assert created_url.original_url == url.original_url
+    assert created_url.created_at is not None
+    assert created_url.is_active is True
+    assert created_url.expires_at is None
 
 
 def test_get_by_short_code(
@@ -49,6 +52,9 @@ def test_get_by_short_code(
     assert result is not None
     assert result.id == url.id
     assert result.short_code == url.short_code
+    assert result.original_url == url.original_url
+    assert result.created_at is not None
+    assert result.is_active is True
 
 
 def test_get_by_short_code_returns_none(db_session: Session) -> None:
