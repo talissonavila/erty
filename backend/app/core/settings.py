@@ -41,5 +41,9 @@ class Settings(BaseSettings):
     postgres_user: str = "erty_user"
     postgres_password: SecretStr
 
+    jwt_secret_key: SecretStr
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_expire_minutes: int = Field(default=30, gt=0)
+
 
 settings = Settings()
