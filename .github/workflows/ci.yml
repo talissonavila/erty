@@ -26,6 +26,7 @@ jobs:
       POSTGRES_DB: erty
       POSTGRES_USER: erty_user
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
     
     services:
       postgres:
