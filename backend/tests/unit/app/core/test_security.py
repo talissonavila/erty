@@ -3,7 +3,12 @@ from datetime import UTC, datetime, timedelta
 import jwt
 import pytest
 
-from app.core.security import create_access_token, get_password_hash, verify_password
+from app.core.security import (
+    create_access_token,
+    decode_access_token,
+    get_password_hash,
+    verify_password,
+)
 from app.core.settings import settings
 
 MINUTE_IN_SECONDS = 60
@@ -238,3 +243,12 @@ def test_create_access_token_rejects_when_token_has_expired():
             settings.jwt_secret_key.get_secret_value(),
             algorithms=[settings.jwt_algorithm],
         )
+
+
+def test_decode_access_returns_none_when_token_is_invalid() -> None:
+    """Tests if decode_access_token returns None for an invalid token."""
+    token = "invalid.token.value"
+
+    payload = decode_access_token(token)
+
+    assert payload is None

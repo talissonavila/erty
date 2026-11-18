@@ -30,7 +30,10 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Returns:
         bool: Returns True if password is correct. False, otherwise.
     """
-    return password_hash.verify(plain_password, hashed_password)
+    return password_hash.verify(
+        plain_password,
+        hashed_password,
+    )
 
 
 def create_access_token(subject: str) -> str:
@@ -56,3 +59,26 @@ def create_access_token(subject: str) -> str:
         algorithm=settings.jwt_algorithm,
     )
     return encoded_jwt
+
+
+def decode_access_token(token: str) -> dict[str, object] | None:
+    """Decode the access token.
+
+    Args:
+        token (str): A access token.
+
+    Returns:
+        dict[str, object] | None: Returns a dict when token is decoded. None, otherwise.
+    """
+    try:
+        payload = jwt.decode(
+            token,
+            settings.jwt_secret_key.get_secret_value(),
+            algorithms=[settings.jwt_algorithm],
+            options={
+                "require": ["exp", "sub"],
+            },
+        )
+        return payload
+    except jwt.exceptions.InvalidTokenError:
+        return None
