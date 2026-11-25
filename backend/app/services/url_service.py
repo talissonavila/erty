@@ -31,11 +31,12 @@ class URLService:
             secrets.choice(self.CODE_CHARACTERS) for _ in range(self.CODE_LENGTH)
         )
 
-    def create_url(self, original_url: str) -> URL:
+    def create_url(self, original_url: str, user_id: int) -> URL:
         """Create and persist a shortened URL.
 
         Args:
             original_url (str): Original URL to be shortened.
+            user_id (int): User that is creating the shortened URL.
 
         Returns:
             The persisted URL model.
@@ -55,6 +56,7 @@ class URLService:
             url = URL(
                 original_url=original_url,
                 short_code=short_code,
+                user_id=user_id,
             )
             try:
                 return self.repository.create(url)

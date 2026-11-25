@@ -1,63 +1,11 @@
-from typing import cast
-from unittest.mock import create_autospec, patch
+from unittest.mock import patch
 
 import pytest
 
-from app.core.security import decode_access_token, get_password_hash
+from app.core.security import decode_access_token
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
 from app.services.auth_service import AuthService, InvalidCredentialsError
-
-
-@pytest.fixture
-def repository() -> UserRepository:
-    """Returns a mocked UserRepository instance."""
-    return cast(
-        UserRepository,
-        create_autospec(UserRepository, instance=True, spec_set=True),
-    )
-
-
-@pytest.fixture
-def service(repository: UserRepository) -> AuthService:
-    """Returns a AuthService with a mocked repository.
-
-    Args:
-        repository (UserRepository): The mocked UserRepository instance.
-    """
-    return AuthService(repository)
-
-
-@pytest.fixture
-def mock_user(password: str) -> User:
-    """Returns a mocked User.
-
-    Args:
-        password (str): A plain password fixture.
-    """
-    return User(
-        id=1,
-        email="user_by_id@example.com",
-        hashed_password=get_password_hash(password),
-        is_active=True,
-    )
-
-
-@pytest.fixture
-def authenticated_service(
-    service: AuthService,
-    repository: UserRepository,
-    mock_user: User,
-) -> AuthService:
-    """Returns an AuthService configured with a valid user.
-
-    Args:
-        service (AuthService): A AuthService with a mocked repository.
-        repository (UserRepository): A mocked UserRepository instance.
-        mock_user (User): A mocked user.
-    """
-    repository.get_by_email.return_value = mock_user
-    return service
 
 
 def test_authenticate_raises_error_when_user_not_found(

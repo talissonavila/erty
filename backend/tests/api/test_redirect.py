@@ -6,12 +6,14 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.models.url import URL
+from app.models.user import User
 
 
 def test_redirects_to_original_url(
     client_with_db: TestClient,
     db_session: Session,
     url_factory: Callable[[], URL],
+    user: User,
 ) -> None:
     """Test that an existing short URL redirects to its original URL.
 
@@ -19,8 +21,9 @@ def test_redirects_to_original_url(
         client_with_db: Test client configured with the test database.
         db_session: Database session used to persist the URL.
         url_factory: Factory that creates a URL instance for testing.
+        user (User): A user stored in test database.
     """
-    url = url_factory()
+    url = url_factory(user)
     db_session.add(url)
     db_session.flush()
 
@@ -55,6 +58,7 @@ def test_returns_404_when_url_is_inactive(
     client_with_db: TestClient,
     db_session: Session,
     url_factory: Callable[[], URL],
+    user: User,
 ) -> None:
     """Test that an inactive URL cannot be accessed.
 
@@ -62,8 +66,9 @@ def test_returns_404_when_url_is_inactive(
         client_with_db: Test client configured with the test database.
         db_session: Database session used to persist the URL.
         url_factory: Factory that creates a URL instance for testing.
+        user (User): A user stored in test database.
     """
-    url = url_factory()
+    url = url_factory(user)
     url.is_active = False
 
     db_session.add(url)
@@ -81,6 +86,7 @@ def test_returns_404_when_url_is_expired(
     client_with_db: TestClient,
     db_session: Session,
     url_factory: Callable[[], URL],
+    user: User,
 ) -> None:
     """Test that an expired URL cannot be accessed.
 
@@ -88,8 +94,9 @@ def test_returns_404_when_url_is_expired(
         client_with_db: Test client configured with the test database.
         db_session: Database session used to persist the URL.
         url_factory: Factory that creates a URL instance for testing.
+        user (User): A user stored in test database.
     """
-    url = url_factory()
+    url = url_factory(user)
     url.expires_at = datetime.now(UTC) - timedelta(days=1)
 
     db_session.add(url)
@@ -107,6 +114,7 @@ def test_redirects_when_url_has_future_expiration(
     client_with_db: TestClient,
     db_session: Session,
     url_factory: Callable[[], URL],
+    user: User,
 ) -> None:
     """Allows redirect when the URL has not expired.
 
@@ -114,8 +122,9 @@ def test_redirects_when_url_has_future_expiration(
     client_with_db (TestClient): Test client configured with the test database.
     db_session (Session): Database session used to persist the URL.
     url_factory (Callable[[], URL]): Factory that creates a URL instance for testing.
+    user (User): A user stored in test database.
     """
-    url = url_factory()
+    url = url_factory(user)
     url.expires_at = datetime.now(UTC) + timedelta(days=1)
 
     db_session.add(url)

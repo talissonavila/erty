@@ -3,7 +3,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.api.dependencies.auth import get_current_user
 from app.db.session import get_db
+from app.models.user import User
 from app.repositories.url_repository import URLRepository
 from app.schemas.url import URLCreate, URLResponse
 from app.services.url_service import URLCodeGenerationError, URLService
@@ -30,7 +32,9 @@ def get_url_service(session: Annotated[Session, Depends(get_db)]) -> URLService:
     status_code=status.HTTP_201_CREATED,
 )
 def create_url(
-    payload: URLCreate, service: Annotated[URLService, Depends(get_url_service)]
+    payload: URLCreate,
+    service: Annotated[URLService, Depends(get_url_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> URLResponse:
     """Create a shortened URL.
 
@@ -46,7 +50,10 @@ def create_url(
         URLCodeGenerationError: Raised when a unique short code cannot be generated.
     """
     try:
-        url = service.create_url(str(payload.original_url))
+        url = service.create_url(
+            str(payload.original_url),
+            user_id=current_user.id,
+        )
         return URLResponse.model_validate(url)
     except URLCodeGenerationError as error:
         raise HTTPException(

@@ -3,22 +3,25 @@ from collections.abc import Callable
 from sqlalchemy.orm import Session
 
 from app.models.url import URL
+from app.models.user import User
 from app.repositories.url_repository import URLRepository
 from app.services.url_service import URLService
 
 
 def test_create_url_persists_url_in_database(
     db_session: Session,
+    user: User,
 ) -> None:
     """Ensure URLService creates and persists a URL in PostgreSQL.
 
     Args:
     db_session (Session): Fixture instance for database.
+    user (User): A user stored in test database.
     """
     repository = URLRepository(db_session)
     service = URLService(repository)
 
-    created_url = service.create_url("https://example.com/articles/erty")
+    created_url = service.create_url("https://example.com/articles/erty", user.id)
 
     persisted_url = db_session.get(URL, created_url.id)
 
@@ -33,17 +36,19 @@ def test_create_url_persists_url_in_database(
 def test_get_original_url_retrieves_persisted_url(
     db_session: Session,
     url_factory: Callable[[], URL],
+    user: User,
 ) -> None:
     """Ensure URLService retrieves a URL persisted in PostgreSQL.
 
     Args:
     db_session (Session): Fixture instance for database.
     url_factory (Callable[[], URL]): Factory that creates a URL instance for testing.
+    user (User): A user stored in test database.
     """
     repository = URLRepository(db_session)
     service = URLService(repository)
 
-    url = url_factory()
+    url = url_factory(user)
     db_session.add(url)
     db_session.flush()
 

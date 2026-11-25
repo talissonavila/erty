@@ -19,8 +19,8 @@ def test_login_url_returns_200(
     """
     response = client_with_db.post(
         LOGIN_URL,
-        json={
-            "email": user.email,
+        data={
+            "username": user.email,
             "password": password,
         },
     )
@@ -45,8 +45,8 @@ def test_login_with_incorrect_password_returns_401(
     """
     response = client_with_db.post(
         LOGIN_URL,
-        json={
-            "email": user.email,
+        data={
+            "username": user.email,
             "password": "wrongpassword",
         },
     )
@@ -66,8 +66,8 @@ def test_login_with_nonexistent_user_returns_401(
     """
     response = client_with_db.post(
         LOGIN_URL,
-        json={
-            "email": "invalid_email@email.com",
+        data={
+            "username": "invalid_email@email.com",
             "password": password,
         },
     )
@@ -89,8 +89,8 @@ def test_login_with_inactive_user_returns_401(
     user.is_active = False
     response = client_with_db.post(
         LOGIN_URL,
-        json={
-            "email": user.email,
+        data={
+            "username": user.email,
             "password": password,
         },
     )

@@ -4,24 +4,14 @@ import jwt
 import pytest
 
 from app.core.security import (
-    create_access_token,
     decode_access_token,
     get_password_hash,
     verify_password,
 )
 from app.core.settings import settings
+from app.models.user import User
 
 MINUTE_IN_SECONDS = 60
-
-
-@pytest.fixture
-def plain_password() -> str:
-    """Provide a plain password for testing.
-
-    Returns:
-        str: A plain password to use in tests.
-    """
-    return "mysecretpassword"
 
 
 @pytest.fixture
@@ -35,16 +25,6 @@ def hashed_password(plain_password: str) -> str:
         str: The hashed password.
     """
     return get_password_hash(plain_password)
-
-
-@pytest.fixture
-def access_token(plain_password: str) -> str:
-    """Returns a JWT token based on a text.
-
-    Args:
-        plain_password (str): A plain password to use in tests.
-    """
-    return create_access_token(plain_password)
 
 
 @pytest.fixture
@@ -153,19 +133,20 @@ def test_create_access_token_generates_a_valid_token(access_token: str) -> None:
 
 
 def test_create_access_token_has_correct_payload(
-    plain_password: str,
     token_payload: dict[str, object],
+    user: User,
 ) -> None:
     """Tests if create_access_token function has correct payload.
 
     Ags:
         token_payload (dict[str, object]): The decode token payload.
+        user (User): A user stored in test database.
     """
 
     assert "sub" in token_payload
     assert "iat" in token_payload
     assert "exp" in token_payload
-    assert token_payload["sub"] == plain_password
+    assert token_payload["sub"] == str(user.id)
 
 
 def test_create_access_token_has_correct_expire_date(
@@ -184,19 +165,20 @@ def test_create_access_token_has_correct_expire_date(
 
 
 def test_create_access_token_decodes_token_correctly(
-    token_payload: dict[str, object], plain_password: str
+    token_payload: dict[str, object],
+    user: User,
 ) -> None:
     """Tests if create_access_token function decode token correctly.
 
     Ags:
         token_payload (dict[str, object]): The decode token payload.
-        plain_password (str): The password used to generate token.
+        user (User): A user stored in test database.
     """
     datetime_now = datetime.now(UTC)
     exp_datetime = datetime.fromtimestamp(token_payload["exp"], tz=UTC)
 
     assert exp_datetime > datetime_now
-    assert token_payload["sub"] == plain_password
+    assert token_payload["sub"] == str(user.id)
 
 
 def test_create_access_token_rejects_token_with_invalid_signature(

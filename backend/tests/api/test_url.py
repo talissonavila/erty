@@ -12,16 +12,23 @@ from app.services.url_service import URLCodeGenerationError, URLService
 
 
 def test_create_url_returns_201(
-    client_with_db: TestClient, db_session: Session
+    client_with_db: TestClient,
+    db_session: Session,
+    access_token: str,
 ) -> None:
     """Returns 201 and persist the shortened URL.
 
     Args:
     client_with_db (TestClient): The test client configured with the test database.
     db_session (Session): Fixture instance for database.
+    access_token (str): Access token to be validated.
     """
+    headers = {"Authorization": f"Bearer {access_token}"}
+
     response = client_with_db.post(
-        "/urls", json={"original_url": "https://example.com/articles/erty"}
+        "/urls",
+        json={"original_url": "https://example.com/articles/erty"},
+        headers=headers,
     )
 
     assert response.status_code == HTTPStatus.CREATED
@@ -40,26 +47,41 @@ def test_create_url_returns_201(
     assert persisted_url.short_code == data["short_code"]
 
 
-def test_create_url_returns_422_for_invalid_payload(client_with_db: TestClient) -> None:
+def test_create_url_returns_422_for_invalid_payload(
+    client_with_db: TestClient,
+    access_token: str,
+) -> None:
     """Return 422 when the request payload contains an invalid URL.
 
     Args:
         client_with_db (TestClient): The test client configured with the test database.
+        access_token (str): Access token to be validated.
     """
-    response = client_with_db.post("/urls", json={"original_url": "not-a-valid-url"})
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    response = client_with_db.post(
+        "/urls",
+        json={"original_url": "not-a-valid-url"},
+        headers=headers,
+    )
 
     assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
 
 def test_create_url_returns_500_when_code_generation_fails(
-    client: TestClient, monkeypatch: pytest.MonkeyPatch
+    client_with_db: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+    access_token: str,
 ) -> None:
     """Returns 500 when the service cannot generate a unique short code.
 
     Args:
-        client (TestClient): The test client.
+        client_with_db (TestClient): The test client configured with the test database.
         monkeypatch (pytest.MonkeyPatch): The fixture used to override dependencies.
+        access_token (str): Access token to be validated.
     """
+    headers = {"Authorization": f"Bearer {access_token}"}
+
     service = create_autospec(URLService, instance=True, spec_set=True)
     service.create_url.side_effect = URLCodeGenerationError(
         "Unable to generate a unique short code."
@@ -67,8 +89,10 @@ def test_create_url_returns_500_when_code_generation_fails(
 
     monkeypatch.setitem(app.dependency_overrides, get_url_service, lambda: service)
 
-    response = client.post(
-        "/urls", json={"original_url": "https://example.com/articles/erty"}
+    response = client_with_db.post(
+        "/urls",
+        json={"original_url": "https://example.com/articles/erty"},
+        headers=headers,
     )
 
     assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
@@ -88,13 +112,16 @@ def test_create_url_returns_500_when_code_generation_fails(
 def test_create_url_returns_422_for_invalid_payloads(
     client_with_db: TestClient,
     payload: dict[str, object],
+    access_token: str,
 ) -> None:
     """Returns 422 when the payload violates the request schema.
 
     Args:
         client_with_db (TestClient): The test client configured with the test database.
         payload (dict[str, object]): Payload expected by '/urls' route to short a URL.
+        access_token (str): Access token to be validated.
     """
-    response = client_with_db.post("/urls", json=payload)
+    headers = {"Authorization": f"Bearer {access_token}"}
+    response = client_with_db.post("/urls", json=payload, headers=headers)
 
     assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
