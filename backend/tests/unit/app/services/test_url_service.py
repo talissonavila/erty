@@ -6,6 +6,7 @@ from unittest.mock import create_autospec
 import pytest
 
 from app.models.url import URL
+from app.models.user import User
 from app.repositories.url_repository import URLRepository, URLShortCodeConflictError
 from app.services.url_service import URLCodeGenerationError, URLService
 
@@ -146,6 +147,7 @@ def test_create_url_persists_url(
     service: URLService,
     repository: URLRepository,
     short_code_generator: short_code_generator,
+    user: User,
 ) -> None:
     """Tests whether a unique short code is generated and the URL is persisted.
 
@@ -154,6 +156,7 @@ def test_create_url_persists_url(
         repository (URLRepository): The mocked URLRepository instance.
         short_code_generator (short_code_generator): Function used to configure
         the generated short codes.
+        user (User): A user stored in test database.
     """
     short_code_generator([SHORT_CODE])
     repository.get_by_short_code.return_value = None
@@ -161,10 +164,11 @@ def test_create_url_persists_url(
     expected_url = URL(
         original_url="https://example.com",
         short_code=SHORT_CODE,
+        user_id=user.id,
     )
     repository.create.return_value = expected_url
 
-    result = service.create_url("https://example.com")
+    result = service.create_url("https://example.com", user.id)
 
     assert result is expected_url
     repository.get_by_short_code.assert_called_once_with(SHORT_CODE)
@@ -181,6 +185,7 @@ def test_create_url_retries_when_code_already_exists(
     repository: URLRepository,
     url_factory: Callable[..., URL],
     short_code_generator: Callable[[list[str]], None],
+    user: User,
 ) -> None:
     """Tests whether a new short code is generated when a collision occurs.
 
@@ -190,6 +195,7 @@ def test_create_url_retries_when_code_already_exists(
         url_factory (Callable[..., URL]):
         short_code_generator (Callable[[list[str]], None]): Function used to configure
         the generated short codes.
+        user (User): A user stored in test database.
     """
     existing_url = url_factory(short_code="taken123")
 
@@ -202,7 +208,7 @@ def test_create_url_retries_when_code_already_exists(
     )
     repository.create.return_value = expected_url
 
-    result = service.create_url("https://example.com")
+    result = service.create_url("https://example.com", user.id)
 
     assert result is expected_url
     assert repository.get_by_short_code.call_count == 2
@@ -218,6 +224,7 @@ def test_create_url_raises_error_after_max_attempts(
     repository: URLRepository,
     url_factory: Callable[..., URL],
     short_code_generator: Callable[[list[str]], None],
+    user: User,
 ) -> None:
     """Tests whether an error is raised after all generation attempts fail.
 
@@ -227,6 +234,7 @@ def test_create_url_raises_error_after_max_attempts(
         url_factory (Callable[..., URL]):
         short_code_generator (Callable[[list[str]], None]): Function used to configure
         the generated short codes.
+        user (User): A user stored in test database.
     """
     existing_url = url_factory(short_code="taken123")
 
@@ -234,7 +242,7 @@ def test_create_url_raises_error_after_max_attempts(
     short_code_generator(["taken123"] * URLService.MAX_ATTEMPTS)
 
     with pytest.raises(URLCodeGenerationError):
-        service.create_url("https://example.com")
+        service.create_url("https://example.com", user.id)
 
     assert repository.get_by_short_code.call_count == URLService.MAX_ATTEMPTS
     repository.create.assert_not_called()
@@ -244,6 +252,7 @@ def test_create_url_retries_after_concurrent_collision(
     service: URLService,
     repository: URLRepository,
     short_code_generator: Callable[[list[str]], None],
+    user: User,
 ) -> None:
     """Should retry when another request inserts the same code.
 
@@ -252,6 +261,7 @@ def test_create_url_retries_after_concurrent_collision(
         repository (URLRepository): The mocked URLRepository instance.
         short_code_generator (Callable[[list[str]], None]): Function used to configure
         the generated short codes.
+        user (User): A user stored in test database.
     """
     short_code_generator([SHORT_CODE, NEW_SHORT_CODE])
     repository.get_by_short_code.return_value = None
@@ -259,6 +269,7 @@ def test_create_url_retries_after_concurrent_collision(
     expected_url = URL(
         original_url="https://example.com",
         short_code=NEW_SHORT_CODE,
+        user_id=user.id,
     )
 
     repository.create.side_effect = [
@@ -266,7 +277,7 @@ def test_create_url_retries_after_concurrent_collision(
         expected_url,
     ]
 
-    result = service.create_url("https://example.com")
+    result = service.create_url("https://example.com", user.id)
 
     assert result is expected_url
     assert repository.get_by_short_code.call_count == 2

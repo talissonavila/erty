@@ -1,9 +1,10 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Integer, String, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.models.user import User
 
 
 class URL(Base):
@@ -14,6 +15,11 @@ class URL(Base):
     id: Mapped[int] = mapped_column(
         Integer,
         primary_key=True,
+        index=True,
+    )
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
         index=True,
     )
     original_url: Mapped[str] = mapped_column(
@@ -41,3 +47,5 @@ class URL(Base):
         server_default="true",
         nullable=False,
     )
+
+    user: Mapped[User] = relationship(back_populates="urls")

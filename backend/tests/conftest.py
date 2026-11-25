@@ -1,15 +1,19 @@
 from collections.abc import Callable, Generator
+from typing import cast
+from unittest.mock import create_autospec
 
 import pytest
 from faker import Faker
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.core.security import get_password_hash
+from app.core.security import create_access_token, get_password_hash
 from app.db.session import SessionLocal, engine, get_db
 from app.main import app
 from app.models.url import URL
 from app.models.user import User
+from app.repositories.user_repository import UserRepository
+from app.services.auth_service import AuthService
 
 
 @pytest.fixture
@@ -53,8 +57,9 @@ def url_factory() -> Callable[[], URL]:
     """
     fake = Faker()
 
-    def build_url() -> URL:
+    def build_url(user: User) -> URL:
         return URL(
+            user_id=user.id,
             original_url=fake.url(),
             short_code=fake.unique.bothify(text="????????"),
         )
@@ -110,3 +115,74 @@ def user(db_session: Session, password: str) -> User:
     db_session.refresh(user)
 
     return user
+
+
+@pytest.fixture
+def repository() -> UserRepository:
+    """Returns a mocked UserRepository instance."""
+    return cast(
+        UserRepository,
+        create_autospec(UserRepository, instance=True, spec_set=True),
+    )
+
+
+@pytest.fixture
+def service(repository: UserRepository) -> AuthService:
+    """Returns a AuthService with a mocked repository.
+
+    Args:
+        repository (UserRepository): The mocked UserRepository instance.
+    """
+    return AuthService(repository)
+
+
+@pytest.fixture
+def mock_user(password: str) -> User:
+    """Returns a mocked User.
+
+    Args:
+        password (str): A plain password fixture.
+    """
+    return User(
+        id=1,
+        email="user_by_id@example.com",
+        hashed_password=get_password_hash(password),
+        is_active=True,
+    )
+
+
+@pytest.fixture
+def authenticated_service(
+    service: AuthService,
+    repository: UserRepository,
+    mock_user: User,
+) -> AuthService:
+    """Returns an AuthService configured with a valid user.
+
+    Args:
+        service (AuthService): A AuthService with a mocked repository.
+        repository (UserRepository): A mocked UserRepository instance.
+        mock_user (User): A mocked user.
+    """
+    repository.get_by_email.return_value = mock_user
+    return service
+
+
+@pytest.fixture
+def plain_password() -> str:
+    """Provide a plain password for testing.
+
+    Returns:
+        str: A plain password to use in tests.
+    """
+    return "mysecretpassword"
+
+
+@pytest.fixture
+def access_token(user: User) -> str:
+    """Returns a valid access token for an existing user."
+
+    Args:
+        user (User):  A user stored in test database.
+    """
+    return create_access_token(subject=str(user.id))
