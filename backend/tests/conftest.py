@@ -118,6 +118,27 @@ def user(db_session: Session, password: str) -> User:
 
 
 @pytest.fixture
+def another_user(db_session: Session, password: str) -> User:
+    """Returns another user.
+
+    Args:
+        db_session (Session): Fixture instance for database.
+        password (str): A plain password.
+    """
+    user = User(
+        email="user2_erty@email.com",
+        hashed_password=get_password_hash(password),
+        is_active=True,
+    )
+
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+
+    return user
+
+
+@pytest.fixture
 def repository() -> UserRepository:
     """Returns a mocked UserRepository instance."""
     return cast(

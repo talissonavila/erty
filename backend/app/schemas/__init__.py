@@ -1,6 +1,6 @@
 from app.schemas.auth import AuthRequest, AuthResponse
 from app.schemas.health_schema import HealthResponse
-from app.schemas.url import URLCreate, URLResponse
+from app.schemas.url import URLCreate, URLListResponse, URLResponse, URLUpdate
 
 __all__ = [
     "HealthResponse",
@@ -8,4 +8,6 @@ __all__ = [
     "URLResponse",
     "AuthRequest",
     "AuthResponse",
+    "URLListResponse",
+    "URLUpdate",
 ]
