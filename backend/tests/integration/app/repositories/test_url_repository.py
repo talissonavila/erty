@@ -12,14 +12,14 @@ from app.repositories.url_repository import URLRepository, URLShortCodeConflictE
 
 def test_create_url(
     db_session: Session,
-    url_factory: Callable[[], URL],
+    url_factory: Callable[[User], URL],
     user: User,
 ) -> None:
     """Should persist a URL and return the created instance.
 
     Args:
         db_session (Session): Fixture instance for database.
-        url_factory (Callable[[], URL]): Fake instance of URL.
+        url_factory (Callable[[User], URL]): Fake instance of URL.
         user (User): A user stored in test database.
     """
     repository = URLRepository(db_session)
@@ -37,14 +37,14 @@ def test_create_url(
 
 def test_get_by_short_code(
     db_session: Session,
-    url_factory: Callable[[], URL],
+    url_factory: Callable[[User], URL],
     user: User,
 ) -> None:
     """Should retrievve a URL using its short code.
 
     Args:
         db_session (Session): Fixture instance for database.
-        url_factory (Callable[[], URL]): Fake instance of URL.
+        url_factory (Callable[[User], URL]): Fake instance of URL.
         user (User): A user stored in test database.
     """
     repository = URLRepository(db_session)
@@ -109,14 +109,14 @@ def test_create_raises_conflict_for_duplicate_short_code(
 
 def test_create_raises_integrity_error_for_other_constraints(
     db_session: Session,
-    url_factory: Callable[[], URL],
+    url_factory: Callable[[User], URL],
     user: User,
 ) -> None:
     """Raise IntegrityError when another database constraint fails.
 
     Args:
         db_session (Session): Fixture instance for database.
-        url_factory (Callable[[], URL]): Fake instance of URL.
+        url_factory (Callable[[User], URL]): Fake instance of URL.
         user (User): A user stored in test database.
     """
     repository = URLRepository(db_session)
@@ -131,3 +131,125 @@ def test_create_raises_integrity_error_for_other_constraints(
             repository.create(url)
 
     assert exc.value is error
+
+
+def test_get_all_by_user_id(
+    db_session: Session,
+    url_factory: Callable[[User], URL],
+    user: User,
+) -> None:
+    """Should retrieve only URLs beloging to the specific user.
+
+    Args:
+        db_session (Session): Fixture instance for database.
+        url_factory (Callable[[User], URL]): Fake instance of URL.
+        user (User): A user stored in test database.
+    """
+    repository = URLRepository(db_session)
+
+    first_url = repository.create(url_factory(user))
+    second_url = repository.create(url_factory(user))
+
+    result = repository.get_all_by_user_id(user.id)
+
+    assert len(result) == 2
+    assert {url.id for url in result} == {first_url.id, second_url.id}
+    assert all(url.user_id == user.id for url in result)
+
+
+def test_get_all_by_user_id_respects_pagination(
+    db_session: Session,
+    url_factory: Callable[[User], URL],
+    user: User,
+) -> None:
+    """Should respect limit and offset when retrieving URLs.
+
+    Args:
+        db_session (Session): Fixture instance for database.
+        url_factory (Callable[[User], URL]): Fake instance of URL.
+        user (User): A user stored in test database.
+    """
+    repository = URLRepository(db_session)
+
+    urls = [repository.create(url_factory(user)) for _ in range(3)]
+
+    result = repository.get_all_by_user_id(user_id=user.id, limit=2, offset=1)
+
+    assert len(result) == 2
+    assert {url.id for url in result}.issubset({url.id for url in urls})
+
+
+def test_get_by_id_and_user_id(
+    db_session: Session,
+    url_factory: Callable[[User], URL],
+    user: User,
+) -> None:
+    """Should retrieve a URL beloging to the specific user.
+
+    Args:
+        db_session (Session): Fixture instance for database.
+        url_factory (Callable[[User], URL]): Fake instance of URL.
+        user (User): A user stored in test database.
+    """
+    repository = URLRepository(db_session)
+
+    url = repository.create(url_factory(user))
+
+    result = repository.get_by_id_and_user_id(
+        url_id=url.id,
+        user_id=user.id,
+    )
+
+    assert result is not None
+    assert result.id == url.id
+
+
+def test_get_by_id_and_user_id_returns_none_for_another_user(
+    db_session: Session,
+    url_factory: Callable[[User], URL],
+    user: User,
+    another_user: User,
+) -> None:
+    """Should not retrieve URLs beloging to another user.
+
+    Args:
+        db_session (Session): Fixture instance for database.
+        url_factory (Callable[[User], URL]): Fake instance of URL.
+        user (User): A user stored in test database.
+        another_user (User): Another user stored in test database.
+    """
+    repository = URLRepository(db_session)
+
+    url = repository.create(url_factory(user))
+
+    result = repository.get_by_id_and_user_id(
+        url_id=url.id,
+        user_id=another_user.id,
+    )
+
+    assert result is None
+
+
+def test_delete_url(
+    db_session: Session,
+    url_factory: Callable[[User], URL],
+    user: User,
+) -> None:
+    """Should delete a URL from the database.
+
+    Args:
+        db_session (Session): Fixture instance for database.
+        url_factory (Callable[[User], URL]): Fake instance of URL.
+        user (User): A user stored in test database.
+    """
+    repository = URLRepository(db_session)
+
+    url = repository.create(url_factory(user))
+
+    repository.delete(url)
+
+    result = repository.get_by_id_and_user_id(
+        url_id=url.id,
+        user_id=user.id,
+    )
+    assert result is None

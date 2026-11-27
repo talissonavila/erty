@@ -61,3 +61,71 @@ class URLRepository:
         statement = select(URL).where(URL.short_code == short_code)
 
         return self.session.scalar(statement)
+
+    def get_all_by_user_id(
+        self,
+        user_id: int,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> list[URL]:
+        """Retrieve URLs beloging to a user with pagination.
+
+        Args:
+            user_id (int): ID of the user whose URLs should be retrieved.
+            limit (int): Maximum number of URLs to retrieve.
+            offset (int): Number of URLs to skip before retrieving results.
+
+        Returns:
+            list[URL]: List of URLs belonging to the specified user.
+        """
+        statement = (
+            select(URL)
+            .where(URL.user_id == user_id)
+            .order_by(URL.created_at.desc(), URL.id.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        return list(self.session.scalars(statement).all())
+
+    def get_by_id_and_user_id(
+        self,
+        url_id: int,
+        user_id: int,
+    ) -> URL | None:
+        """Retrieve a URL only if it belongs to the specific user.
+
+        Args:
+            url_id (int): ID of the URL to retrieve.
+            user_id (int): ID of the user who must own the URL.
+
+        Returns:
+            URL | None: The URL if it exists and belongs to the specified user.
+            None, otherwise.
+        """
+        statement = select(URL).where(
+            URL.id == url_id,
+            URL.user_id == user_id,
+        )
+        return self.session.scalar(statement)
+
+    def delete(self, url: URL) -> None:
+        """Delete a URL.
+
+        Args:
+            url (URL): URL instance to be deleted.
+        """
+        self.session.delete(url)
+        self.session.flush()
+
+    def update(self, url: URL) -> URL:
+        """Persist changes to an existing URL.
+
+        Args:
+            url (URL): URL instance containing the updated values.
+
+        Retuens:
+            URL: Updated URL instance
+        """
+        self.session.add(url)
+        self.session.flush()
+        return url

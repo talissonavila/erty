@@ -1,13 +1,36 @@
 import secrets
 import string
 from datetime import UTC, datetime
+from typing import TypedDict
 
+from app.core.constants import DEFAULT_URL_LIMIT_VALUE, DEFAULT_URL_OFFSET_VALUE
 from app.models.url import URL
 from app.repositories.url_repository import URLRepository, URLShortCodeConflictError
 
 
 class URLCodeGenerationError(Exception):
     """Raised when a unique short code cannot be generated."""
+
+
+class URLNotFoundError(Exception):
+    """Raised when a URL does not exist or does not belong to the user."""
+
+    def __init__(self, message: str = "URL not found.") -> None:
+        """Initialize the exception with an error message.
+        Args:
+            message (str): Description of the URL error.
+            Defaltus to "URL not found."
+        """
+        self.message = message
+        super().__init__(message)
+
+
+class URLUpdateData(TypedDict, total=False):
+    """Fields that can be updated on a URL."""
+
+    original_url: str
+    expires_at: datetime | None
+    is_active: bool
 
 
 class URLService:
@@ -83,3 +106,92 @@ class URLService:
             return None
 
         return url.original_url
+
+    def list_urls(
+        self,
+        user_id: int,
+        limit: int = DEFAULT_URL_LIMIT_VALUE,
+        offset: int = DEFAULT_URL_OFFSET_VALUE,
+    ) -> list[URL]:
+        """List URLs belonging to a user.
+
+        Args:
+            user_id (int): ID of the authenticated user.
+            limit (int): Maximum number of URLs to retrieve. Defaults to 20.
+            offset (int): Number of URLs to skip. Defaults to 0.
+
+        Returns:
+            list[URL]: List of URLs belonging to the specified user.
+        """
+        return self.repository.get_all_by_user_id(
+            user_id=user_id,
+            limit=limit,
+            offset=offset,
+        )
+
+    def get_url(
+        self,
+        url_id: int,
+        user_id: int,
+    ) -> URL:
+        """Retrieve a URL only if it belongs to the specified user.
+
+        Args:
+            url_id (int): ID of the URL.
+            user_id (int): ID of the authenticated user.
+
+        Returns:
+            URL: The requested URL.
+
+        Raises:
+            URLNotFoundError: Raised when the URL does not exist or belongs to another
+            user.
+        """
+        url = self.repository.get_by_id_and_user_id(
+            url_id=url_id,
+            user_id=user_id,
+        )
+        if url is None:
+            raise URLNotFoundError()
+        return url
+
+    def update_url(
+        self,
+        url_id: int,
+        user_id: int,
+        updates: URLUpdateData,
+    ) -> URL:
+        """Update a URL belonging to the specified user.
+
+        Args:
+            url_id (int): ID of the URL.
+            user_id (int): ID of the authenticated user.
+            updates (URLUpdateData): Fields to update.
+
+        Returns:
+            URL: Updated URL.
+
+        Raises:
+            URLNotFoundError: Raised when the URL does not exist or belongs to another
+            user.
+        """
+        url = self.get_url(url_id=url_id, user_id=user_id)
+
+        for field, value in updates.items():
+            setattr(url, field, value)
+
+        return self.repository.update(url)
+
+    def delete_url(self, url_id: int, user_id: int) -> None:
+        """Delete a URL belonging to the specified user.
+
+        Args:
+            url_id (int): ID of the URL.
+            user_id (int): ID of the authenticated user.
+
+        Raises:
+            URLNotFoundError: Raised when the URL does not exist or belongs to another
+            user.
+        """
+        url = self.get_url(url_id=url_id, user_id=user_id)
+        self.repository.delete(url=url)
